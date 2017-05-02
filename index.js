@@ -113,38 +113,44 @@ var handlers = {
     },
     'SetCity': function() {
 
-        CURRENT_CITY = this.event.request.intent.slots.city.value;
-        if (FOLLOW_UP) {
-            FOLLOW_UP = false;
+        if (this.event.request.intent.slots.city.hasOwnProperty("value")) {
 
-            // current hack. redirection to other skill not working
+            CURRENT_CITY = this.event.request.intent.slots.city.value;
+            if (FOLLOW_UP) {
+                FOLLOW_UP = false;
 
-            var options = {
-                city: CURRENT_CITY,
-            };
-            var self = this;
-            console.log("Calling weather for", CURRENT_CITY);
-            weather.setCity(options.city);
-            getWeatherData(options, function(carryUmbrella) {
-                // Create speech output
-                console.log("carryUmbrella", carryUmbrella);
-                if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
-                    speechOutput = "Sorry I faced an issue. Please try again."
-                } else {
-                    if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
-                        speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
+                // current hack. redirection to other skill not working
+
+                var options = {
+                    city: CURRENT_CITY,
+                };
+                var self = this;
+                console.log("Calling weather for", CURRENT_CITY);
+                weather.setCity(options.city);
+                getWeatherData(options, function(carryUmbrella) {
+                    // Create speech output
+                    console.log("carryUmbrella", carryUmbrella);
+                    if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
+                        speechOutput = "Sorry I faced an issue. Please try again."
                     } else {
-                        speechOutput = "Don't worry about umbrella today. The weather outside is " + carryUmbrella.status
+                        if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
+                            speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
+                        } else {
+                            speechOutput = "Don't worry about umbrella today. The weather outside is " + carryUmbrella.status
 
+                        }
                     }
-                }
 
-                self.emit(':tellWithCard', speechOutput, SKILL_NAME)
-            });
+                    self.emit(':tellWithCard', speechOutput, SKILL_NAME)
+                });
+            } else {
+                this.emit(':tell', 'Cool !');
+            }
         } else {
-            this.emit(':tell', 'Cool !');
+            speechOutput = "What is your city again ?";
+            var reprompt = "I did'nt get your city. Please repeat."
+            this.emit(':ask', speechOutput, reprompt);
         }
-
     },
     'AMAZON.HelpIntent': function() {
         var speechOutput = "You can ask me about carrying umbrella outside today, or, you can say exit... What can I help you with?";
@@ -156,5 +162,10 @@ var handlers = {
     },
     'AMAZON.StopIntent': function() {
         this.emit(':tell', 'Goodbye!');
+    },
+    'SessionEndedRequest': function() {
+        console.log('session ended!');
+        // this.attributes['endedSessionCount'] += 1;
+        // this.emit(':saveState', true); // Be sure to call :saveState to persist your session attributes in DynamoDB
     }
 };
