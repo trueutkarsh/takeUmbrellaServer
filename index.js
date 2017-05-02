@@ -37,7 +37,6 @@ function getWeatherData(options, callback) {
         "rain": ""
     }
 
-    // weather.setCity(CITY);
     weather.getSmartJSON(function(err, JSONObj) {
         if (err) {
             console.log("error", err);
@@ -47,8 +46,7 @@ function getWeatherData(options, callback) {
             result.status = JSONObj.description;
             result.rain = JSONObj.rain;
         }
-
-        callback(result);
+        return callback(result);
     });
 
 
@@ -57,7 +55,10 @@ function getWeatherData(options, callback) {
 
 var handlers = {
     'LaunchRequest': function() {
-        this.emit('TakeUmbrellaOrNot');
+        speechOutput = "Hi there. Can you tell me your current city ?"
+        var reprompt = "Sorry, I did'nt get your city. Please repeat."
+        FOLLOW_UP = true;
+        this.emit(':ask', speechOutput, reprompt);
     },
     'TakeUmbrellaOrNot': function() {
         // Get information about weather in her location 
@@ -66,33 +67,37 @@ var handlers = {
 
         // no city provided
 
-        if (this.event.request.intent.slots.current_city.hasOwnProperty("value")) {
-            CURRENT_CITY = this.event.request.intent.slots.current_city.value;
-        } else {
-            if (CURRENT_CITY === "") {
-                FOLLOW_UP = true;
-                speechOutput = "But which city are you in right now ?";
-                this.emit(':ask', speechOutput, "Sorry. I didn't get your city.");
+        if (!FOLLOW_UP) {
+            if (this.event.request.intent.slots.current_city.hasOwnProperty("value")) {
+                CURRENT_CITY = this.event.request.intent.slots.current_city.value;
+            } else {
+                if (CURRENT_CITY === "") {
+                    FOLLOW_UP = true;
+                    speechOutput = "But which city are you in right now ?";
+                    var reprompt = "I did'nt get your city. Please repeat."
+                    this.emit(':ask', speechOutput, reprompt);
+                }
             }
+        } else {
+            FOLLOW_UP = false;
         }
 
 
-        // set options parameters
-        weather.setCity(CURRENT_CITY);
-        var wthrpath = "/data/2.5/forecast/daily?q=" + CURRENT_CITY + "&APPID=" + Weather_API_Key + "&cnt=1"
+
         var options = {
-            host: 'api.openweathermap.org',
-            path: wthrpath,
-            method: 'GET'
+            city: CURRENT_CITY,
         };
 
 
         var self = this;
+
+        weather.setCity(options.city);
+        console.log("Calling weather for", CURRENT_CITY)
         getWeatherData(options, function(carryUmbrella) {
             // Create speech output
             console.log("carryUmbrella", carryUmbrella);
-            if (carryUmbrella.status == -1) {
-                speechOutput = "Invalid City. Please tell your city correctly."
+            if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
+                speechOutput = "Sorry I faced an issue. Please try again."
             } else {
                 if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
                     speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
@@ -111,7 +116,31 @@ var handlers = {
         CURRENT_CITY = this.event.request.intent.slots.city.value;
         if (FOLLOW_UP) {
             FOLLOW_UP = false;
-            this.emit('TakeUmbrellaOrNot');
+
+            // current hack. redirection to other skill not working
+
+            var options = {
+                city: CURRENT_CITY,
+            };
+            var self = this;
+            console.log("Calling weather for", CURRENT_CITY);
+            weather.setCity(options.city);
+            getWeatherData(options, function(carryUmbrella) {
+                // Create speech output
+                console.log("carryUmbrella", carryUmbrella);
+                if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
+                    speechOutput = "Sorry I faced an issue. Please try again."
+                } else {
+                    if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
+                        speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
+                    } else {
+                        speechOutput = "Don't worry about umbrella today. The weather outside is " + carryUmbrella.status
+
+                    }
+                }
+
+                self.emit(':tellWithCard', speechOutput, SKILL_NAME)
+            });
         } else {
             this.emit(':tell', 'Cool !');
         }
