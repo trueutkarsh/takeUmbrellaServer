@@ -74,12 +74,20 @@ var handlers = {
                 if (CURRENT_CITY === "") {
                     FOLLOW_UP = true;
                     speechOutput = "But which city are you in right now ?";
-                    var reprompt = "I did'nt get your city. Please repeat."
+                    var reprompt = "I did'nt get your city Please repeat."
                     this.emit(':ask', speechOutput, reprompt);
                 }
             }
         } else {
-            FOLLOW_UP = false;
+            if (this.event.request.intent.slots.current_city.hasOwnProperty("value")) {
+                FOLLOW_UP = false;
+                CURRENT_CITY = this.event.request.intent.slots.current_city.value;
+
+            } else {
+                speechOutput = "What is your city again ?";
+                var reprompt = "I did'nt get your city Please repeat."
+                this.emit(':ask', speechOutput, reprompt);
+            }
         }
 
 
@@ -97,10 +105,10 @@ var handlers = {
             // Create speech output
             console.log("carryUmbrella", carryUmbrella);
             if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
-                speechOutput = "Sorry I faced an issue. Please try again."
+                speechOutput = "Sorry I faced an issue Please try again"
             } else {
                 if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
-                    speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
+                    speechOutput = "Please carry your umbrella outside today. " + carryUmbrella.status + " is expected"
                 } else {
                     speechOutput = "Don't worry about umbrella today. The weather outside is " + carryUmbrella.status
 
@@ -131,10 +139,10 @@ var handlers = {
                     // Create speech output
                     console.log("carryUmbrella", carryUmbrella);
                     if (carryUmbrella.status == -1 || carryUmbrella.status == "") {
-                        speechOutput = "Sorry I faced an issue. Please try again."
+                        speechOutput = "Sorry I faced an issue Please try again"
                     } else {
                         if (carryUmbrella.rain > 0 || carryUmbrella.status.indexOf("rain") > -1) {
-                            speechOutput = "Please carry your umbrella outside today." + carryUmbrella.status + " is expected."
+                            speechOutput = "Please carry your umbrella outside today. " + carryUmbrella.status + " is expected."
                         } else {
                             speechOutput = "Don't worry about umbrella today. The weather outside is " + carryUmbrella.status
 
@@ -148,7 +156,7 @@ var handlers = {
             }
         } else {
             speechOutput = "What is your city again ?";
-            var reprompt = "I did'nt get your city. Please repeat."
+            var reprompt = "I did'nt get your city Please repeat."
             this.emit(':ask', speechOutput, reprompt);
         }
     },
